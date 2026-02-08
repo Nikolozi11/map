@@ -2,13 +2,14 @@
 <html lang="ka">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>დიმიტრი ყიფიანის ნაკვალევი</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>დიმიტრი ყიფიანის თბილისი</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             overflow: hidden; background: #1a1612; 
+            touch-action: none; /* მობილურზე ზედმეტი სქროლის საწინააღმდეგოდ */
         }
 
         #map-canvas {
@@ -20,12 +21,13 @@
             background-repeat: no-repeat;
             cursor: grab;
             user-select: none;
+            will-change: transform;
         }
-        #map-canvas:active { cursor: grabbing; }
 
+        /* მობილურზე წერტილები უფრო დიდი რომ ადვილად დააჭირო */
         .fact-point {
             position: absolute;
-            width: 55px; height: 55px;
+            width: 60px; height: 60px;
             background: rgba(139, 69, 19, 0.9);
             border: 3px solid #d4af37;
             border-radius: 50%;
@@ -34,28 +36,32 @@
             z-index: 100;
             color: #f1c40f; 
             font-weight: bold;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            transition: transform 0.2s, background 0.3s;
-        }
-        .fact-point:hover {
-            transform: scale(1.3);
-            background: #d4af37;
-            color: #fff;
         }
 
+        /* მობილურზე მორგებული პანელი */
         #ui-panel {
-            position: fixed; top: 20px; left: 20px;
+            position: fixed; top: 10px; left: 10px; right: 10px;
             background: rgba(253, 245, 230, 0.95);
-            border: 4px solid #5d4037;
-            padding: 15px; width: 280px;
+            border: 2px solid #5d4037;
+            padding: 10px;
             z-index: 1000; border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             font-family: serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 600px) {
+            #ui-panel h4 { font-size: 1rem; margin: 0; }
+            #ui-panel p { display: none; } /* მობილურზე ტექსტს ვმალავთ ადგილის დასაზოგად */
+            .fact-point { width: 50px; height: 50px; font-size: 1.1rem; }
         }
 
         .modal-content {
-            background: #fdf5e6; border: 5px solid #5d4037;
+            background: #fdf5e6; border: 4px solid #5d4037;
             background-image: url('https://www.transparenttextures.com/patterns/old-paper.png');
         }
     </style>
@@ -63,39 +69,32 @@
 <body>
 
     <div id="ui-panel">
-        <h4 class="text-center" style="color: #5d4037;">ისტორიული ძიება</h4>
-        <hr>
-        <p class="small text-muted">რუკა დიდია! მოძებნეთ 12 ფაქტი ყველა კუთხეში.</p>
-        <div class="text-center">ნაპოვნია: <b><span id="count">0</span> / 12</b></div>
+        <h4 style="color: #5d4037; margin-bottom: 0;">ატლასი</h4>
+        <div class="fw-bold">ნაპოვნია: <span id="count">0</span> / 12</div>
     </div>
 
     <div id="map-canvas">
         <div class="fact-point" style="top: 1550px; left: 2300px;" onclick="reveal(1, 'თბილისის მერია', 'როგორც ქალაქის თავი, ის აქედან მართავდა დედაქალაქს.')">1</div>
         <div class="fact-point" style="top: 1400px; left: 2100px;" onclick="reveal(2, 'კლასიკური გიმნაზია', 'მისი განათლებისა და ინტელექტუალური ზრდის ადგილი.')">2</div>
-
         <div class="fact-point" style="top: 400px; left: 600px;" onclick="reveal(3, 'ადრეული ჩანაწერები', 'აქ აღმოჩენილია მისი პირველი პუბლიცისტური წერილები.')">3</div>
         <div class="fact-point" style="top: 700px; left: 1200px;" onclick="reveal(4, 'სტამბა', 'სადაც ქართული სიტყვა იბეჭდებოდა.')">4</div>
-
         <div class="fact-point" style="top: 500px; left: 3800px;" onclick="reveal(5, 'ჩრდილოეთის გზა', 'ამ მიმართულებით გადაასახლეს იგი რუსეთის იმპერიის ბრძანებით.')">5</div>
         <div class="fact-point" style="top: 900px; left: 3200px;" onclick="reveal(6, 'წერილი ეგზარქოსს', 'საბედისწერო წერილი, რომელმაც მისი ბედი გადაწყვიტა.')">6</div>
-
         <div class="fact-point" style="top: 2800px; left: 500px;" onclick="reveal(7, 'ხალხის მხარდაჭერა', 'აქ იკრიბებოდნენ მოქალაქეები მისი იდეების მხარდასაჭერად.')">7</div>
         <div class="fact-point" style="top: 2300px; left: 1100px;" onclick="reveal(8, 'ოჯახური მამული', 'ადგილი, სადაც ის სიმშვიდეს პოულობდა.')">8</div>
-
         <div class="fact-point" style="top: 2900px; left: 4000px;" onclick="reveal(9, 'ანდერძი', 'მისი უკანასკნელი სიტყვები მომავალი თაობებისთვის.')">9</div>
         <div class="fact-point" style="top: 2500px; left: 3300px;" onclick="reveal(10, 'ეროვნული საგანძური', 'უნიკალური ხელნაწერები, რომლებიც მან გადაარჩინა.')">10</div>
-
         <div class="fact-point" style="top: 1800px; left: 4200px;" onclick="reveal(11, 'სტავროპოლის ტრაგედია', 'ადგილი, სადაც მისი სიცოცხლე ვერაგულად შეწყდა.')">11</div>
         <div class="fact-point" style="top: 1200px; left: 300px;" onclick="reveal(12, 'პირველი ბანკი', 'ეროვნული ეკონომიკის საძირკველი.')">12</div>
     </div>
 
     <div class="modal fade" id="infoModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content p-5 text-center">
+            <div class="modal-content p-4 text-center">
                 <h3 id="m-title" style="color: #8b4513;"></h3>
                 <hr>
-                <p id="m-text" style="font-family: Georgia, serif; font-style: italic;" class="fs-4 text-dark"></p>
-                <button class="btn btn-dark mt-3" data-bs-dismiss="modal">ძიების გაგრძელება</button>
+                <p id="m-text" style="font-family: Georgia, serif; font-style: italic;" class="fs-5 text-dark"></p>
+                <button class="btn btn-dark w-100" data-bs-dismiss="modal">გავაგრძელო ძიება</button>
             </div>
         </div>
     </div>
@@ -106,26 +105,36 @@
         let isDragging = false;
         let startX, startY, currentX = 0, currentY = 0;
 
+        // რუკის საწყისი ცენტრირება
         window.onload = () => {
             currentX = -(2321 - window.innerWidth / 2);
             currentY = -(1658 - window.innerHeight / 2);
-            canvas.style.left = currentX + 'px';
-            canvas.style.top = currentY + 'px';
+            updatePos();
         };
 
-        canvas.addEventListener('mousedown', (e) => {
+        function updatePos() {
+            canvas.style.left = currentX + 'px';
+            canvas.style.top = currentY + 'px';
+        }
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+
+        // Touch Events (მობილურისთვის)
+        canvas.addEventListener('touchstart', (e) => startDrag(e.touches[0]));
+        document.addEventListener('touchmove', (e) => drag(e.touches[0]));
+        document.addEventListener('touchend', endDrag);
+
+        function startDrag(e) {
             isDragging = true;
             startX = e.clientX - currentX;
             startY = e.clientY - currentY;
             canvas.style.cursor = 'grabbing';
-        });
+        }
 
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            canvas.style.cursor = 'grab';
-        });
-
-        document.addEventListener('mousemove', (e) => {
+        function drag(e) {
             if (!isDragging) return;
             currentX = e.clientX - startX;
             currentY = e.clientY - startY;
@@ -138,9 +147,13 @@
             if (currentX < minX) currentX = minX;
             if (currentY < minY) currentY = minY;
 
-            canvas.style.left = currentX + 'px';
-            canvas.style.top = currentY + 'px';
-        });
+            updatePos();
+        }
+
+        function endDrag() {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        }
 
         let found = new Set();
         const myModal = new bootstrap.Modal(document.getElementById('infoModal'));
